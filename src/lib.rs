@@ -4,6 +4,10 @@ pub struct Rgb {
     pub g: u8,
     pub b: u8,
 }
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ImageError {
+    OutOfBounds { x: u32, y: u32 },
+}
 
 pub struct Image {
     width: u32,
@@ -36,22 +40,22 @@ impl Image {
         self.height
     }
 
-    pub fn get_pixel(&self, x: u32, y: u32) -> Option<Rgb> {
+    pub fn get_pixel(&self, x: u32, y: u32) -> Result<Rgb, ImageError> {
         if x >= self.width || y >= self.height {
-            return None;
+            return Err(ImageError::OutOfBounds { x, y });
         }
 
-        Some(self.pixels[self.index(x, y)])
+        Ok(self.pixels[self.index(x, y)])
     }
 
-    pub fn set_pixel(&mut self, x: u32, y: u32, rgb: Rgb) -> bool {
+    pub fn set_pixel(&mut self, x: u32, y: u32, rgb: Rgb) -> Result<(), ImageError> {
         if x >= self.width || y >= self.height {
-            return false;
+            return Err(ImageError::OutOfBounds { x, y });
         }
 
         let index = self.index(x, y);
         self.pixels[index] = rgb;
-        true
+        Ok(())
     }
 }
 
@@ -71,7 +75,7 @@ mod tests {
     fn new_image_is_filled_with_black() {
         let image = Image::new(1, 1);
 
-        assert_eq!(image.get_pixel(0, 0), Some(Rgb { r: 0, g: 0, b: 0 }));
+        assert_eq!(image.get_pixel(0, 0), Ok(Rgb { r: 0, g: 0, b: 0 }));
     }
 
     #[test]
@@ -79,16 +83,22 @@ mod tests {
         let mut image = Image::new(2, 1);
         let red = Rgb { r: 255, g: 0, b: 0 };
 
-        assert!(image.set_pixel(0, 0, red));
-        assert_eq!(image.get_pixel(0, 0), Some(Rgb { r: 255, g: 0, b: 0 }));
+        assert_eq!(image.set_pixel(0, 0, red), Ok(()));
+        assert_eq!(image.get_pixel(0, 0), Ok(Rgb { r: 255, g: 0, b: 0 }));
     }
 
     #[test]
     fn get_pixel_returns_none_when_out_of_bound() {
         let image = Image::new(2, 1);
 
-        assert_eq!(image.get_pixel(2, 0), None);
-        assert_eq!(image.get_pixel(0, 1), None);
+        assert_eq!(
+            image.get_pixel(2, 0),
+            Err(ImageError::OutOfBounds { x: 2, y: 0 })
+        );
+        assert_eq!(
+            image.get_pixel(0, 1),
+            Err(ImageError::OutOfBounds { x: 0, y: 1 })
+        );
     }
 
     #[test]
@@ -96,7 +106,13 @@ mod tests {
         let mut image = Image::new(2, 1);
         let red = Rgb { r: 255, g: 0, b: 0 };
 
-        assert!(!image.set_pixel(2, 0, red));
-        assert!(!image.set_pixel(0, 1, red));
+        assert_eq!(
+            image.set_pixel(2, 0, red),
+            Err(ImageError::OutOfBounds { x: 2, y: 0 })
+        );
+        assert_eq!(
+            image.set_pixel(0, 1, red),
+            Err(ImageError::OutOfBounds { x: 0, y: 1 })
+        );
     }
 }
