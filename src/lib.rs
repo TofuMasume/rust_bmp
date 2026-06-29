@@ -1,3 +1,7 @@
+const BMP_FILE_HEADER_SIZE: u32 = 14;
+const DIB_HEADER_SIZE: u32 = 40;
+const PIXEL_ARRAY_OFFSET: u32 = BMP_FILE_HEADER_SIZE + DIB_HEADER_SIZE;
+
 #[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct Rgb {
     pub r: u8,
@@ -36,6 +40,10 @@ impl Image {
 
     fn pixel_data_size(width: u32, height: u32) -> u32 {
         Image::row_size(width) * height
+    }
+
+    fn file_size(width: u32, height: u32) -> u32 {
+        PIXEL_ARRAY_OFFSET + Image::pixel_data_size(width, height)
     }
 
     pub fn new(width: u32, height: u32) -> Self {
@@ -147,5 +155,13 @@ mod tests {
         assert_eq!(Image::pixel_data_size(2, 1), 8);
         assert_eq!(Image::pixel_data_size(3, 2), 24);
         assert_eq!(Image::pixel_data_size(4, 2), 24);
+    }
+
+    #[test]
+    fn file_size_includes_headers_and_pixel_data() {
+        assert_eq!(Image::file_size(1, 1), 58);
+        assert_eq!(Image::file_size(2, 1), 62);
+        assert_eq!(Image::file_size(3, 1), 66);
+        assert_eq!(Image::file_size(4, 1), 66);
     }
 }
