@@ -16,6 +16,15 @@ pub struct Image {
 }
 
 impl Image {
+    fn index(&self, x: u32, y: u32) -> Result<usize, ImageError> {
+        if x >= self.width || y >= self.height {
+            return Err(ImageError::OutOfBounds { x, y });
+        }
+        Ok((y * self.width + x) as usize)
+        // y →
+        // x ↓
+    }
+
     pub fn new(width: u32, height: u32) -> Self {
         let black = Rgb { r: 0, g: 0, b: 0 };
 
@@ -24,15 +33,6 @@ impl Image {
             height,
             pixels: vec![black; (width * height) as usize],
         }
-    }
-
-    fn index(&self, x: u32, y: u32) -> Result<usize, ImageError> {
-        if x >= self.width || y >= self.height {
-            return Err(ImageError::OutOfBounds { x, y });
-        }
-        Ok((y * self.width + x) as usize)
-        // y →
-        // x ↓
     }
 
     pub fn width(&self) -> u32 {
