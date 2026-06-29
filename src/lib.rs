@@ -82,4 +82,21 @@ mod tests {
         assert!(image.set_pixel(0, 0, red));
         assert_eq!(image.get_pixel(0, 0), Some(Rgb { r: 255, g: 0, b: 0 }));
     }
+
+    #[test]
+    fn get_pixel_returns_none_when_out_of_bound() {
+        let image = Image::new(2, 1);
+
+        assert_eq!(image.get_pixel(2, 0), None);
+        assert_eq!(image.get_pixel(0, 1), None);
+    }
+
+    #[test]
+    fn set_pixel_returns_false_when_out_of_bounds() {
+        let mut image = Image::new(2, 1);
+        let red = Rgb { r: 255, g: 0, b: 0 };
+
+        assert!(!image.set_pixel(2, 0, red));
+        assert!(!image.set_pixel(0, 1, red));
+    }
 }
