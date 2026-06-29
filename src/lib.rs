@@ -46,6 +46,46 @@ impl Image {
         PIXEL_ARRAY_OFFSET + Image::pixel_data_size(width, height)
     }
 
+    fn file_header(width: u32, height: u32) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.extend_from_slice(b"BM"); // file type
+        bytes.extend_from_slice(&Image::file_size(width, height).to_le_bytes()); // file size
+        bytes.extend_from_slice(&0u16.to_le_bytes()); // reserve
+        bytes.extend_from_slice(&0u16.to_le_bytes()); // reserve
+        bytes.extend_from_slice(&PIXEL_ARRAY_OFFSET.to_le_bytes()); // image data offset
+
+        bytes
+    }
+
+    fn dib_header(width: u32, height: u32) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.extend_from_slice(&DIB_HEADER_SIZE.to_le_bytes());
+        bytes.extend_from_slice(&(width as i32).to_le_bytes());
+        bytes.extend_from_slice(&(height as i32).to_le_bytes());
+        bytes.extend_from_slice(&1u16.to_le_bytes());
+        bytes.extend_from_slice(&24u16.to_le_bytes());
+        bytes.extend_from_slice(&0u32.to_le_bytes());
+        bytes.extend_from_slice(&Image::pixel_data_size(width, height).to_le_bytes());
+        bytes.extend_from_slice(&0i32.to_le_bytes());
+        bytes.extend_from_slice(&0i32.to_le_bytes());
+        bytes.extend_from_slice(&0u32.to_le_bytes());
+        bytes.extend_from_slice(&0u32.to_le_bytes());
+
+        bytes
+    }
+
+    pub fn to_bytes(&self) -> Vec<u8> {
+        let mut bytes = Vec::new();
+
+        bytes.extend_from_slice(&Image::file_header(self.width, self.height));
+        bytes.extend_from_slice(&Image::dib_header(self.width, self.height));
+        bytes.resize(Image::file_size(self.width, self.height) as usize, 0);
+
+        bytes
+    }
+
     pub fn new(width: u32, height: u32) -> Self {
         let black = Rgb { r: 0, g: 0, b: 0 };
 
@@ -163,5 +203,76 @@ mod tests {
         assert_eq!(Image::file_size(2, 1), 62);
         assert_eq!(Image::file_size(3, 1), 66);
         assert_eq!(Image::file_size(4, 1), 66);
+    }
+
+    #[test]
+    fn file_header_starts_with_bm() {
+        let header = Image::file_header(1, 1);
+
+        assert_eq!(&header[0..2], b"BM");
+    }
+
+    #[test]
+    fn file_header_has_expected_size() {
+        let header = Image::file_header(1, 1);
+
+        assert_eq!(header.len(), BMP_FILE_HEADER_SIZE as usize);
+    }
+
+    #[test]
+    fn file_header_writes_file_size_and_pixel_offset() {
+        let header = Image::file_header(1, 1);
+
+        assert_eq!(&header[2..6], &58u32.to_le_bytes());
+        assert_eq!(&header[10..14], &PIXEL_ARRAY_OFFSET.to_le_bytes());
+    }
+
+    #[test]
+    fn dib_header_has_expected_size() {
+        let header = Image::dib_header(1, 1);
+
+        assert_eq!(header.len(), DIB_HEADER_SIZE as usize);
+    }
+
+    #[test]
+    fn dib_header_writes_size_width_and_height() {
+        let header = Image::dib_header(2, 3);
+
+        assert_eq!(&header[0..4], &DIB_HEADER_SIZE.to_le_bytes());
+        assert_eq!(&header[4..8], &2i32.to_le_bytes());
+        assert_eq!(&header[8..12], &3i32.to_le_bytes());
+    }
+
+    #[test]
+    fn dib_header_writes_planes_and_bit_count() {
+        let header = Image::dib_header(1, 1);
+
+        assert_eq!(&header[12..14], &1u16.to_le_bytes());
+        assert_eq!(&header[14..16], &24u16.to_le_bytes());
+    }
+
+    #[test]
+    fn dib_header_writes_pixel_data_size() {
+        let header = Image::dib_header(3, 2);
+
+        assert_eq!(&header[20..24], &24u32.to_le_bytes());
+    }
+
+    #[test]
+    fn to_bytes_has_expected_file_size() {
+        let image = Image::new(1, 1);
+        let bytes = image.to_bytes();
+
+        assert_eq!(bytes.len(), 58);
+    }
+
+    #[test]
+    fn to_bytes_writes_headers_before_pixel_data() {
+        let image = Image::new(1, 1);
+        let bytes = image.to_bytes();
+
+        assert_eq!(&bytes[0..2], b"BM");
+        assert_eq!(&bytes[10..14], &PIXEL_ARRAY_OFFSET.to_le_bytes());
+        assert_eq!(&bytes[14..18], &DIB_HEADER_SIZE.to_le_bytes());
     }
 }
