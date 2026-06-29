@@ -26,8 +26,11 @@ impl Image {
         }
     }
 
-    fn index(&self, x: u32, y: u32) -> usize {
-        (y * self.width + x) as usize
+    fn index(&self, x: u32, y: u32) -> Result<usize, ImageError> {
+        if x >= self.width || y >= self.height {
+            return Err(ImageError::OutOfBounds { x, y });
+        }
+        Ok((y * self.width + x) as usize)
         // y →
         // x ↓
     }
@@ -41,19 +44,12 @@ impl Image {
     }
 
     pub fn get_pixel(&self, x: u32, y: u32) -> Result<Rgb, ImageError> {
-        if x >= self.width || y >= self.height {
-            return Err(ImageError::OutOfBounds { x, y });
-        }
-
-        Ok(self.pixels[self.index(x, y)])
+        let index = self.index(x, y)?;
+        Ok(self.pixels[index])
     }
 
     pub fn set_pixel(&mut self, x: u32, y: u32, rgb: Rgb) -> Result<(), ImageError> {
-        if x >= self.width || y >= self.height {
-            return Err(ImageError::OutOfBounds { x, y });
-        }
-
-        let index = self.index(x, y);
+        let index = self.index(x, y)?;
         self.pixels[index] = rgb;
         Ok(())
     }
