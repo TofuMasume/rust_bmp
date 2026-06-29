@@ -25,6 +25,19 @@ impl Image {
         // x ↓
     }
 
+    fn row_padding(width: u32) -> u32 {
+        let raw_row_bytes = width * 3;
+        (4 - raw_row_bytes % 4) % 4
+    }
+
+    fn row_size(width: u32) -> u32 {
+        width * 3 + Image::row_padding(width)
+    }
+
+    fn pixel_data_size(width: u32, height: u32) -> u32 {
+        Image::row_size(width) * height
+    }
+
     pub fn new(width: u32, height: u32) -> Self {
         let black = Rgb { r: 0, g: 0, b: 0 };
 
@@ -110,5 +123,29 @@ mod tests {
             image.set_pixel(0, 1, red),
             Err(ImageError::OutOfBounds { x: 0, y: 1 })
         );
+    }
+
+    #[test]
+    fn row_padding_aligns_rows_to_four_bytes() {
+        assert_eq!(Image::row_padding(1), 1);
+        assert_eq!(Image::row_padding(2), 2);
+        assert_eq!(Image::row_padding(3), 3);
+        assert_eq!(Image::row_padding(4), 0);
+    }
+
+    #[test]
+    fn row_size_includes_padding() {
+        assert_eq!(Image::row_size(1), 4);
+        assert_eq!(Image::row_size(2), 8);
+        assert_eq!(Image::row_size(3), 12);
+        assert_eq!(Image::row_size(4), 12);
+    }
+
+    #[test]
+    fn pixel_data_size_is_row_size_times_height() {
+        assert_eq!(Image::pixel_data_size(1, 1), 4);
+        assert_eq!(Image::pixel_data_size(2, 1), 8);
+        assert_eq!(Image::pixel_data_size(3, 2), 24);
+        assert_eq!(Image::pixel_data_size(4, 2), 24);
     }
 }
